@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 from dotenv import load_dotenv
-from generators.content_generator import ContentGenerator
+from generators.openai_generator import ContentGenerator
 from generators.prompt_manager import PromptManager
 
 # Configuración de la página DEBE SER LO PRIMERO
