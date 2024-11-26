@@ -4,15 +4,30 @@ from dotenv import load_dotenv
 from generators.content_generator import ContentGenerator
 from generators.prompt_manager import PromptManager
 
-# Cargar variables de entorno
-load_dotenv()
-
-# Configuración de la página
+# Configuración de la página DEBE SER LO PRIMERO
 st.set_page_config(
     page_title="Generador de Contenido Digital",
     page_icon="📝",
     layout="wide"
 )
+
+# Cargar variables de entorno
+load_dotenv()
+
+# Verificar API key
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    st.error("❌ No se encontró la API key en las variables de entorno")
+    st.stop()
+elif not api_key.startswith("sk-"):
+    st.error("❌ La API key no tiene el formato correcto. Debe comenzar con 'sk-'")
+    st.stop()
+elif len(api_key) < 20:
+    st.error("❌ La API key parece ser demasiado corta")
+    st.stop()
+
+# Si llegamos aquí, la API key parece válida
+st.sidebar.success("✅ API key configurada correctamente")
 
 # Inicialización de clases
 prompt_manager = PromptManager()
@@ -60,45 +75,36 @@ if st.button("🎯 Generar Contenido", type="primary"):
     if tema and audiencia:
         with st.spinner("✨ Generando contenido personalizado..."):
             try:
-                # Inicializar generador
-                generator = ContentGenerator(api_key=os.getenv("OPENAI_API_KEY"))
-                
-                # Obtener template
+                generator = ContentGenerator(api_key=api_key)
                 template_data = prompt_manager.get_template(platform)
                 
                 if template_data:
-                    # Preparar parámetros
                     params = {
                         "tema": tema,
                         "audiencia": audiencia,
                         "tono": tono
                     }
                     
-                    # Generar contenido
                     resultado = generator.generate_content(
                         template_data["template"],
                         params
                     )
                     
-                    if resultado:
-                        st.success("¡Contenido generado con éxito! 🎉")
-                        
-                        # Mostrar resultado
-                        st.header("📊 Contenido Generado")
-                        st.markdown(resultado)
-                        
-                        # Opciones adicionales
-                        st.download_button(
-                            label="📥 Descargar Contenido",
-                            data=resultado,
-                            file_name=f"contenido_{platform.lower()}.txt",
-                            mime="text/plain"
-                        )
-                    else:
-                        st.error("Error generando el contenido. Por favor, intenta de nuevo.")
-                        
+                    st.success("¡Contenido generado con éxito! 🎉")
+                    st.header("📊 Contenido Generado")
+                    st.markdown(resultado)
+                    
+                    st.download_button(
+                        label="📥 Descargar Contenido",
+                        data=resultado,
+                        file_name=f"contenido_{platform.lower()}.txt",
+                        mime="text/plain"
+                    )
+                else:
+                    st.error(f"No se encontró template para la plataforma {platform}")
+                    
             except Exception as e:
-                st.error(f"Ocurrió un error: {str(e)}")
+                st.error(f"Error inesperado: {str(e)}")
     else:
         st.warning("⚠️ Por favor, completa todos los campos requeridos.")
 

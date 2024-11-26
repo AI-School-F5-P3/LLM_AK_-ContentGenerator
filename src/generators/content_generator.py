@@ -1,7 +1,7 @@
-from langchain.llms import OpenAI
+from typing import Dict, Optional
+from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
-from typing import Dict, Optional
 
 class ContentGenerator:
     """Clase principal para la generación de contenido"""
@@ -14,7 +14,15 @@ class ContentGenerator:
             api_key (str): API key para el modelo de lenguaje
             temperature (float): Temperatura para la generación (0.0 - 1.0)
         """
-        self.llm = OpenAI(api_key=api_key, temperature=temperature)
+        if not api_key:
+            raise ValueError("API key no puede estar vacía")
+            
+        # Usando ChatOpenAI con gpt-3.5-turbo
+        self.llm = ChatOpenAI(
+            api_key=api_key,  # Cambio de openai_api_key a api_key
+            model="gpt-3.5-turbo",  # Cambio de model_name a model
+            temperature=temperature
+        )
     
     def generate_content(self, 
                         template: str, 
@@ -30,6 +38,10 @@ class ContentGenerator:
             str: Contenido generado
         """
         try:
+            # Validar parámetros
+            if not template or not params:
+                raise ValueError("Template y parámetros son requeridos")
+                
             # Crear el prompt
             prompt = PromptTemplate(
                 input_variables=list(params.keys()),
@@ -38,21 +50,19 @@ class ContentGenerator:
             
             # Crear y ejecutar la chain
             chain = LLMChain(llm=self.llm, prompt=prompt)
-            return chain.run(params)
+            result = chain.invoke(params)  # Cambio de run a invoke
+            
+            if not result or not result.get('text'):
+                raise ValueError("No se pudo generar contenido")
+                
+            return result.get('text')
             
         except Exception as e:
             print(f"Error generando contenido: {str(e)}")
-            return None
-    
+            raise Exception(f"Error en la generación de contenido: {str(e)}")
+
     def validate_params(self, required_params: list, provided_params: Dict) -> bool:
         """
         Valida que todos los parámetros requeridos estén presentes
-        
-        Args:
-            required_params (list): Lista de parámetros requeridos
-            provided_params (dict): Parámetros proporcionados
-            
-        Returns:
-            bool: True si todos los parámetros requeridos están presentes
         """
         return all(param in provided_params for param in required_params)
