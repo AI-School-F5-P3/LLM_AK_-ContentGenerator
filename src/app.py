@@ -1,33 +1,13 @@
 import streamlit as st
-import os
-from dotenv import load_dotenv
-from generators.content_generator import ContentGenerator
 from generators.prompt_manager import PromptManager
+from generators.ollama_generator import OllamaGenerator
 
-# Configuración de la página DEBE SER LO PRIMERO
+# Configuración de la página
 st.set_page_config(
     page_title="Generador de Contenido Digital",
     page_icon="📝",
     layout="wide"
 )
-
-# Cargar variables de entorno
-load_dotenv()
-
-# Verificar API key
-api_key = os.getenv("OPENAI_API_KEY")
-if not api_key:
-    st.error("❌ No se encontró la API key en las variables de entorno")
-    st.stop()
-elif not api_key.startswith("sk-"):
-    st.error("❌ La API key no tiene el formato correcto. Debe comenzar con 'sk-'")
-    st.stop()
-elif len(api_key) < 20:
-    st.error("❌ La API key parece ser demasiado corta")
-    st.stop()
-
-# Si llegamos aquí, la API key parece válida
-st.sidebar.success("✅ API key configurada correctamente")
 
 # Inicialización de clases
 prompt_manager = PromptManager()
@@ -41,6 +21,15 @@ st.markdown("""
 
 # Sidebar para configuración
 st.sidebar.header("⚙️ Configuración")
+
+# Selección de modelo
+model = st.sidebar.selectbox(
+    "Selecciona el modelo",
+    ["mistral", "llama2", "neural-chat"]
+)
+
+# Información del modelo seleccionado
+st.sidebar.info(f"✨ Usando modelo: {model}")
 
 # Selección de plataforma
 platform = st.sidebar.selectbox(
@@ -75,7 +64,7 @@ if st.button("🎯 Generar Contenido", type="primary"):
     if tema and audiencia:
         with st.spinner("✨ Generando contenido personalizado..."):
             try:
-                generator = ContentGenerator(api_key=api_key)
+                generator = OllamaGenerator(model=model)
                 template_data = prompt_manager.get_template(platform)
                 
                 if template_data:
@@ -110,4 +99,4 @@ if st.button("🎯 Generar Contenido", type="primary"):
 
 # Footer
 st.markdown("---")
-st.markdown("Desarrollado con ❤️ usando Streamlit y LangChain")
+st.markdown("Desarrollado con ❤️ usando Streamlit y Ollama")
