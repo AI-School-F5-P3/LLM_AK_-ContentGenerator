@@ -1,7 +1,7 @@
 import unittest
 import requests
 from unittest.mock import Mock, patch
-from generators.prompt_manager import PromptManager
+from utils.prompt_manager import PromptManager
 from generators.ollama_generator import OllamaGenerator
 
 class TestPromptManager(unittest.TestCase):

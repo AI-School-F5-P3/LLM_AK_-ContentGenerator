@@ -2,12 +2,13 @@ import streamlit as st
 from generators.ollama_generator import OllamaGenerator
 from generators.image_generator import ImageGenerator
 from utils.company_profile import ProfileManager, CompanyProfile
+from utils.prompt_manager import PromptManager  # Importamos PromptManager
 import os
 from dotenv import load_dotenv
 import base64
 from io import BytesIO
 
-# Configuración de la página - DEBE SER LA PRIMERA LLAMADA A STREAMLIT
+# Configuración de la página
 st.set_page_config(
     page_title="Generador de Contenido Digital",
     page_icon="📝",
@@ -17,15 +18,14 @@ st.set_page_config(
 # Cargar variables de entorno
 load_dotenv()
 
-# Mostrar estado de STABILITY_API_KEY
-stability_api_key = os.getenv("STABILITY_API_KEY")
-st.sidebar.write("STABILITY_API_KEY present:", "Yes" if stability_api_key else "No")
-
-# Inicialización del generador y profile manager
+# Inicialización de los managers
 generator = OllamaGenerator()
 profile_manager = ProfileManager()
+prompt_manager = PromptManager()  # Inicializamos PromptManager
 
-# Inicializar el generador de imágenes si hay API key
+# Configuración de Stability AI
+stability_api_key = os.getenv("STABILITY_API_KEY")
+st.sidebar.write("STABILITY_API_KEY present:", "Yes" if stability_api_key else "No")
 image_gen = ImageGenerator(api_key=stability_api_key) if stability_api_key else None
 
 # Título y descripción
@@ -43,6 +43,15 @@ model = st.sidebar.selectbox(
     "Selecciona el modelo",
     ["mistral", "llama2", "neural-chat"]
 )
+
+# Selección de plataforma
+platforms = prompt_manager.get_all_platforms()
+platform = st.sidebar.selectbox(
+    "📱 Selecciona la plataforma",
+    platforms
+)
+
+
 
 # Perfil de empresa
 st.sidebar.header("🏢 Perfil de Empresa")
@@ -139,29 +148,40 @@ if st.button("🎯 Generar Contenido", type="primary"):
                 # Actualizar el modelo del generador
                 generator.model = model
                 
-                # Preparar el prompt
-                prompt_base = f"""
-                Genera contenido sobre el tema: {tema}
-                Para una audiencia de: {audiencia}
-                Usando un tono: {tono}
-                """
+                # Obtener el template para la plataforma seleccionada
+                platform_template = prompt_manager.get_template(platform)
                 
-                # Añadir contexto del perfil de empresa si está seleccionado
-                if selected_profile != "Ninguno":
-                    profile = profile_manager.load_profile(selected_profile)
-                    if profile:
-                        prompt_base += f"\n{profile.get_prompt_context()}"
+                if not platform_template:
+                    st.error(f"No se encontró template para la plataforma {platform}")
+                    st.stop()
                 
-                # Generar contenido
-                resultado = generator.generate_content(
-                    prompt_base,
-                    {"tema": tema, "audiencia": audiencia, "tono": tono}
-                )
+                # Preparar los parámetros para el template
+                template_params = {
+                    "tema": tema,
+                    "audiencia": audiencia,
+                    "tono": tono
+                }
                 
-                if resultado:
-                    st.success("¡Contenido generado con éxito! 🎉")
-                    st.header("📊 Contenido Generado")
-                    st.markdown(resultado)
+                # Validar que tenemos todos los parámetros necesarios
+                if generator.validate_params(platform_template["params"], template_params):
+                    # Obtener el template y añadir contexto del perfil si existe
+                    prompt_template = platform_template["template"]
+                    
+                    if selected_profile != "Ninguno":
+                        profile = profile_manager.load_profile(selected_profile)
+                        if profile:
+                            prompt_template += f"\n\nContexto de la empresa:\n{profile.get_prompt_context()}"
+                    
+                    # Generar contenido
+                    resultado = generator.generate_content(
+                        prompt_template,
+                        template_params
+                    )
+                    
+                    if resultado:
+                        st.success("¡Contenido generado con éxito! 🎉")
+                        st.header(f"📊 Contenido para {platform}")
+                        st.markdown(resultado)
                     
                     # Generar imagen si está seleccionado y configurado
                     if generar_imagen and image_gen:
@@ -190,13 +210,14 @@ if st.button("🎯 Generar Contenido", type="primary"):
                         except Exception as e:
                             st.error(f"🚨 Error en la generación de imagen: {str(e)}")
                     
-                    # Botón de descarga
                     st.download_button(
-                        label="📥 Descargar Contenido",
-                        data=resultado,
-                        file_name="contenido_generado.txt",
-                        mime="text/plain"
-                    )
+                            label="📥 Descargar Contenido",
+                            data=resultado,
+                            file_name=f"contenido_{platform.lower()}.txt",
+                            mime="text/plain"
+                        )
+                else:
+                    st.error("Faltan parámetros requeridos para la generación del contenido")
                     
             except Exception as e:
                 st.error(f"Error generando contenido: {str(e)}")
