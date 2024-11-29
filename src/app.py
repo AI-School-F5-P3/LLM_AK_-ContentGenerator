@@ -1,22 +1,30 @@
 import streamlit as st
-from generators.prompt_manager import PromptManager
 from generators.ollama_generator import OllamaGenerator
 from generators.image_generator import ImageGenerator
-from generators.llm_handler import LLMManager
-from company_profile import ProfileManager, CompanyProfile
+from utils.company_profile import ProfileManager, CompanyProfile
 import os
+from dotenv import load_dotenv
 
-# Configuración de la página
+# Configuración de la página - DEBE SER LA PRIMERA LLAMADA A STREAMLIT
 st.set_page_config(
     page_title="Generador de Contenido Digital",
     page_icon="📝",
     layout="wide"
 )
 
-# Inicialización de clases
-prompt_manager = PromptManager()
-llm_manager = LLMManager()
+# Cargar variables de entorno
+load_dotenv()
+
+# Mostrar estado de STABILITY_API_KEY
+stability_api_key = os.getenv("STABILITY_API_KEY")
+st.sidebar.write("STABILITY_API_KEY present:", "Yes" if stability_api_key else "No")
+
+# Inicialización del generador y profile manager
+generator = OllamaGenerator()
 profile_manager = ProfileManager()
+
+# Inicializar el generador de imágenes si hay API key
+image_gen = ImageGenerator(api_key=stability_api_key) if stability_api_key else None
 
 # Título y descripción
 st.title("🚀 Generador de Contenido Digital")
@@ -28,39 +36,52 @@ st.markdown("""
 # Sidebar para configuración
 st.sidebar.header("⚙️ Configuración")
 
-# Selección de provider LLM
-available_providers = llm_manager.get_available_providers()
-provider_names = [p[0] for p in available_providers]
-provider_descriptions = {p[0]: p[1] for p in available_providers}
-
-selected_provider = st.sidebar.selectbox(
-    "Selecciona el proveedor LLM",
-    provider_names,
-    format_func=lambda x: f"{x} - {provider_descriptions[x]}"
+# Selección de modelo
+model = st.sidebar.selectbox(
+    "Selecciona el modelo",
+    ["mistral", "llama2", "neural-chat"]
 )
 
-# Selección de plataforma
-platform = st.sidebar.selectbox(
-    "Selecciona la plataforma",
-    prompt_manager.get_all_platforms()
-)
-
-# Gestión de perfiles de empresa
-st.sidebar.header("👥 Perfil de Empresa")
+# Perfil de empresa
+st.sidebar.header("🏢 Perfil de Empresa")
 profiles = profile_manager.get_all_profiles()
 selected_profile = st.sidebar.selectbox(
-    "Selecciona un perfil",
-    ["Ninguno"] + profiles,
-    help="Selecciona un perfil de empresa existente o crea uno nuevo"
+    "Seleccionar perfil",
+    ["Ninguno"] + profiles
 )
+
+# Formulario para nuevo perfil
+if st.sidebar.checkbox("Crear nuevo perfil"):
+    with st.sidebar.form("new_profile"):
+        company_name = st.text_input("Nombre de la empresa")
+        company_description = st.text_area("Descripción")
+        industry = st.text_input("Industria")
+        tone = st.text_input("Tono de voz")
+        target_audience = st.text_input("Audiencia objetivo (separada por comas)")
+        key_values = st.text_input("Valores clave (separados por comas)")
+        hashtags = st.text_input("Hashtags (separados por comas)")
+        website = st.text_input("Sitio web (opcional)")
+
+        if st.form_submit_button("Guardar perfil"):
+            new_profile = CompanyProfile(
+                name=company_name,
+                description=company_description,
+                industry=industry,
+                tone_of_voice=tone,
+                target_audience=target_audience.split(','),
+                key_values=key_values.split(','),
+                hashtags=hashtags.split(','),
+                website=website
+            )
+            profile_manager.save_profile(new_profile)
+            st.success("Perfil guardado exitosamente")
+            st.experimental_rerun()
+
+# Información del modelo seleccionado
+st.sidebar.info(f"✨ Usando modelo: {model}")
 
 # Configuración del contenido
 st.header("📝 Detalles del Contenido")
-
-# Cargar perfil seleccionado
-profile_data = None
-if selected_profile != "Ninguno":
-    profile_data = profile_manager.load_profile(selected_profile)
 
 col1, col2 = st.columns(2)
 
@@ -72,132 +93,108 @@ with col1:
     
     tono = st.selectbox(
         "Tono de comunicación",
-        ["Profesional", "Casual", "Educativo", "Inspirador", "Humorístico"],
-        index=0 if not profile_data else ["Profesional", "Casual", "Educativo", "Inspirador", "Humorístico"].index(profile_data.tone_of_voice)
+        ["Profesional", "Casual", "Educativo", "Inspirador", "Humorístico"]
     )
 
 with col2:
     audiencia = st.text_input(
         "Audiencia objetivo",
-        value="" if not profile_data else ", ".join(profile_data.target_audience),
         help="Describe tu audiencia ideal (ej: profesionales de marketing, estudiantes...)"
     )
     
     generar_imagen = st.checkbox(
         "Generar imagen para el contenido",
-        help="Genera una imagen relacionada con el contenido usando Stability AI"
+        help="Genera una imagen relacionada con el contenido"
     )
 
-# Configuración de imagen
-if generar_imagen and os.getenv("STABILITY_API_KEY"):
+# Configuración adicional para la generación de imagen
+if generar_imagen:
     image_dimensions = st.selectbox(
         "Dimensiones de la imagen",
-        [
-            "Cuadrada (512x512)",
-            "Horizontal (768x512)",
-            "Vertical (512x768)"
-        ]
+        ["Cuadrada (512x512)", "Horizontal (768x512)", "Vertical (512x768)"]
     )
     
-    negative_prompt = st.text_input(
+    negative_prompt = st.text_area(
         "Prompt negativo (opcional)",
-        help="Elementos que NO quieres que aparezcan en la imagen"
+        help="Describe lo que NO quieres que aparezca en la imagen"
     )
 
+    dimensions_map = {
+        "Cuadrada (512x512)": (512, 512),
+        "Horizontal (768x512)": (768, 512),
+        "Vertical (512x768)": (512, 768)
+    }
+    dimensions = dimensions_map[image_dimensions]
+
+    if not stability_api_key:
+        st.warning("⚠️ No se ha configurado la API key de Stability AI. La generación de imágenes no estará disponible.")
+            
 # Botón de generación
 if st.button("🎯 Generar Contenido", type="primary"):
     if tema and audiencia:
         with st.spinner("✨ Generando contenido personalizado..."):
             try:
-                # Obtener el provider seleccionado
-                provider = llm_manager.get_provider(selected_provider)
-                if not provider:
-                    st.error(f"Provider {selected_provider} no encontrado")
-                    st.stop()
+                # Actualizar el modelo del generador
+                generator.model = model
                 
-                template_data = prompt_manager.get_template(platform)
+                # Preparar el prompt
+                prompt_base = f"""
+                Genera contenido sobre el tema: {tema}
+                Para una audiencia de: {audiencia}
+                Usando un tono: {tono}
+                """
                 
-                if template_data:
-                    # Preparar contexto del prompt
-                    context = ""
-                    if profile_data:
-                        context = profile_data.get_prompt_context()
-                    
-                    params = {
-                        "tema": tema,
-                        "audiencia": audiencia,
-                        "tono": tono,
-                        "context": context
-                    }
-                    
-                    # Generar contenido
-                    llm = provider.get_llm()
-                    resultado = llm.generate(template_data["template"].format(**params))
-                    
+                # Añadir contexto del perfil de empresa si está seleccionado
+                if selected_profile != "Ninguno":
+                    profile = profile_manager.load_profile(selected_profile)
+                    if profile:
+                        prompt_base += f"\n{profile.get_prompt_context()}"
+                
+                # Generar contenido
+                resultado = generator.generate_content(
+                    prompt_base,
+                    {"tema": tema, "audiencia": audiencia, "tono": tono}
+                )
+                
+                if resultado:
                     st.success("¡Contenido generado con éxito! 🎉")
                     st.header("📊 Contenido Generado")
                     st.markdown(resultado)
                     
-                    # Generar imagen si está seleccionado
-                    if generar_imagen and os.getenv("STABILITY_API_KEY"):
-                        image_gen = ImageGenerator(api_key=os.getenv("STABILITY_API_KEY"))
-                        
-                        # Configurar dimensiones
-                        dimensions = {
-                            "Cuadrada (512x512)": (512, 512),
-                            "Horizontal (768x512)": (768, 512),
-                            "Vertical (512x768)": (512, 768)
-                        }[image_dimensions]
-                        
-                        # Generar imagen
-                        image_prompt = f"Imagen para contenido sobre: {tema}"
-                        image_base64 = image_gen.generate_image(
-                            prompt=image_prompt,
-                            dimensions=dimensions,
-                            negative_prompt=negative_prompt
-                        )
-                        
-                        if image_base64:
-                            st.image(image_base64)
-                            st.download_button(
-                                label="📥 Descargar Imagen",
-                                data=image_base64,
-                                file_name="contenido_imagen.png",
-                                mime="image/png"
-                            )
+                    # Generar imagen si está seleccionado y configurado
+                    if generar_imagen and image_gen:
+                        try:
+                            with st.spinner("🎨 Generando imagen..."):
+                                image_prompt = f"Create a professional and modern image that represents: {tema}"
+                                st.info("🔍 Prompt para la imagen: " + image_prompt)
+                                
+                                image_base64 = image_gen.generate_image(
+                                    prompt=image_prompt.strip(),
+                                    dimensions=dimensions,
+                                    negative_prompt=negative_prompt
+                                )
+                                
+                                if image_base64:
+                                    st.success("✨ ¡Imagen generada exitosamente!")
+                                    st.image(image_base64)
+                                else:
+                                    st.error("❌ No se pudo generar la imagen.")
+                        except Exception as e:
+                            st.error(f"🚨 Error en la generación de imagen: {str(e)}")
                     
-                    # Botón de descarga para el contenido
+                    # Botón de descarga
                     st.download_button(
                         label="📥 Descargar Contenido",
                         data=resultado,
-                        file_name=f"contenido_{platform.lower()}.txt",
+                        file_name="contenido_generado.txt",
                         mime="text/plain"
                     )
-                else:
-                    st.error(f"No se encontró template para la plataforma {platform}")
                     
             except Exception as e:
-                st.error(f"Error inesperado: {str(e)}")
+                st.error(f"Error generando contenido: {str(e)}")
     else:
         st.warning("⚠️ Por favor, completa todos los campos requeridos.")
 
 # Footer
 st.markdown("---")
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.markdown("**🔧 Modelos Disponibles:**")
-    for provider_name, description in provider_descriptions.items():
-        st.markdown(f"- {provider_name}: {description}")
-
-with col2:
-    st.markdown("**📱 Plataformas Soportadas:**")
-    for platform in prompt_manager.get_all_platforms():
-        st.markdown(f"- {platform}")
-
-with col3:
-    st.markdown("**💡 Perfiles Disponibles:**")
-    for profile in profiles:
-        st.markdown(f"- {profile}")
-
-st.markdown("Desarrollado con ❤️ usando Streamlit, LangChain y Stability AI")
+st.markdown("Desarrollado con ❤️ usando Streamlit y Ollama")

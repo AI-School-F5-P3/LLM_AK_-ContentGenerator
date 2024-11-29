@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from langchain.llms import OpenAI, BaseLLM
+from langchain_community.llms import OpenAI
 from langchain.callbacks import StreamingStdOutCallbackHandler
+from langchain.schema.language_model import BaseLLM
 import ollama
 import os
 from typing import Optional, Dict
@@ -43,11 +44,11 @@ class OpenAIProvider(LLMProvider):
     def get_description(self) -> str:
         return f"OpenAI {self.model} (Balanced quality and speed)"
 
-class MistralProvider(LLMProvider):
-    """Provider para Mistral usando Ollama"""
+class OllamaProvider(LLMProvider):
+    """Provider para modelos usando Ollama"""
     
-    def __init__(self):
-        self.model = "mistral"
+    def __init__(self, model: str = "mistral"):
+        self.model = model
     
     def get_llm(self) -> BaseLLM:
         return ollama.LLM(
@@ -56,10 +57,10 @@ class MistralProvider(LLMProvider):
         )
     
     def get_name(self) -> str:
-        return "Mistral"
+        return f"Ollama-{self.model.capitalize()}"
     
     def get_description(self) -> str:
-        return "Mistral (Open source, runs locally)"
+        return f"{self.model.capitalize()} (Open source, runs locally)"
 
 class LLMManager:
     """Gestor principal de LLMs"""
@@ -74,10 +75,12 @@ class LLMManager:
         if os.getenv("OPENAI_API_KEY"):
             self.add_provider(OpenAIProvider(api_key=os.getenv("OPENAI_API_KEY")))
         
-        # Mistral (si Ollama está instalado)
+        # Ollama providers
         try:
             import ollama
-            self.add_provider(MistralProvider())
+            # Añadir diferentes modelos de Ollama
+            for model in ["mistral", "llama2", "neural-chat"]:
+                self.add_provider(OllamaProvider(model=model))
         except ImportError:
             pass
     
