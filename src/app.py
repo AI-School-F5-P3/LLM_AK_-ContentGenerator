@@ -4,6 +4,8 @@ from generators.image_generator import ImageGenerator
 from utils.company_profile import ProfileManager, CompanyProfile
 import os
 from dotenv import load_dotenv
+import base64
+from io import BytesIO
 
 # Configuración de la página - DEBE SER LA PRIMERA LLAMADA A STREAMLIT
 st.set_page_config(
@@ -176,7 +178,13 @@ if st.button("🎯 Generar Contenido", type="primary"):
                                 
                                 if image_base64:
                                     st.success("✨ ¡Imagen generada exitosamente!")
-                                    st.image(image_base64)
+                                    # Decodificar la imagen base64 y mostrarla
+                                    try:
+                                        image_data = base64.b64decode(image_base64)
+                                        image_bytes = BytesIO(image_data)
+                                        st.image(image_bytes)
+                                    except Exception as e:
+                                        st.error(f"❌ Error al procesar la imagen: {str(e)}")
                                 else:
                                     st.error("❌ No se pudo generar la imagen.")
                         except Exception as e:
