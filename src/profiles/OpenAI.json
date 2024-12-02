@@ -1,0 +1,32 @@
+{
+    "name": "OpenAI",
+    "description": "OpenAI es un pionero en inteligencia artificial avanzada, comprometido con desarrollar tecnolog\u00edas que sean seguras, \u00e9ticas y beneficiosas para la humanidad, liderando la investigaci\u00f3n y democratizaci\u00f3n de modelos como GPT y DALL\u00b7E.",
+    "industry": "Inteligencia artificial.",
+    "tone_of_voice": "Innovador, t\u00e9cnico, colaborativo.",
+    "target_audience": [
+        "Desarrolladores",
+        " investigadores",
+        " startups tecnol\u00f3gicas",
+        " empresas que adoptan IA",
+        " instituciones acad\u00e9micas",
+        " entusiastas de la tecnolog\u00eda."
+    ],
+    "key_values": [
+        "\u00c9tica",
+        " seguridad",
+        " transparencia",
+        " impacto positivo",
+        " colaboraci\u00f3n",
+        " accesibilidad."
+    ],
+    "hashtags": [
+        "#OpenAI",
+        " #ArtificialIntelligence",
+        " #Innovation",
+        " #EthicalAI",
+        " #GPT",
+        " #AIForGood",
+        " #Dalle"
+    ],
+    "website": " https://www.openai.com"
+}

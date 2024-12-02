@@ -16,6 +16,14 @@ st.set_page_config(
     layout="wide"
 )
 
+# Inicializar estados en session_state si no existen
+if 'generated_content' not in st.session_state:
+    st.session_state.generated_content = None
+if 'generated_image' not in st.session_state:
+    st.session_state.generated_image = None
+if 'profile_saved' not in st.session_state:
+    st.session_state.profile_saved = False
+
 # Cargar variables de entorno
 load_dotenv()
 
@@ -75,19 +83,28 @@ if st.sidebar.checkbox("Crear nuevo perfil"):
         website = st.text_input("Sitio web (opcional)")
 
         if st.form_submit_button("Guardar perfil"):
-            new_profile = CompanyProfile(
-                name=company_name,
-                description=company_description,
-                industry=industry,
-                tone_of_voice=tone,
-                target_audience=target_audience.split(','),
-                key_values=key_values.split(','),
-                hashtags=hashtags.split(','),
-                website=website
-            )
-            profile_manager.save_profile(new_profile)
-            st.success("Perfil guardado exitosamente")
-            st.experimental_rerun()
+            if company_name and company_description and industry and tone and target_audience and key_values:
+                new_profile = CompanyProfile(
+                    name=company_name,
+                    description=company_description,
+                    industry=industry,
+                    tone_of_voice=tone,
+                    target_audience=target_audience.split(','),
+                    key_values=key_values.split(','),
+                    hashtags=hashtags.split(','),
+                    website=website
+                )
+                profile_manager.save_profile(new_profile)
+                st.session_state.profile_saved = True
+                st.experimental_rerun()
+            else:
+                st.error("Por favor complete todos los campos obligatorios")
+
+# Mostrar mensaje de éxito después del rerun si el perfil se guardó
+if st.session_state.profile_saved:
+    st.sidebar.success("✅ Perfil guardado exitosamente")
+    # Resetear el estado después de mostrar el mensaje
+    st.session_state.profile_saved = False                
 
 # Información del modelo seleccionado
 st.sidebar.info(f"✨ Usando modelo: {model}")
@@ -182,8 +199,10 @@ if st.button("🎯 Generar Contenido", type="primary"):
                     if resultado:
                         st.success("¡Contenido generado con éxito! 🎉")
                         st.header(f"📊 Contenido para {platform}")
+                        # Guardar el contenido en session_state
+                        st.session_state.generated_content = resultado
                         st.markdown(resultado)
-                    
+                
                     # Generar imagen si está seleccionado y configurado
                     if generar_imagen and image_gen:
                         try:
@@ -202,8 +221,9 @@ if st.button("🎯 Generar Contenido", type="primary"):
                                     # Decodificar la imagen base64 y mostrarla
                                     try:
                                         image_data = base64.b64decode(image_base64)
-                                        image_bytes = BytesIO(image_data)
-                                        st.image(image_bytes)
+                                        # Guardar la imagen en session_state
+                                        st.session_state.generated_image = image_data
+                                        st.image(BytesIO(image_data))
                                         
                                         # Crear un archivo ZIP con el contenido y la imagen
                                         zip_buffer = BytesIO()
@@ -211,12 +231,13 @@ if st.button("🎯 Generar Contenido", type="primary"):
                                             # Añadir el contenido de texto
                                             zip_file.writestr(
                                                 f"contenido_{platform.lower()}.txt",
-                                                resultado
+                                                st.session_state.generated_content
                                             )
                                             # Añadir la imagen
                                             zip_file.writestr(
                                                 f"imagen_{platform.lower()}.png",
-                                                image_data
+                                                st.session_state.generated_image
+
                                             )
                                         
                                         # Botón para descargar el ZIP
@@ -232,14 +253,14 @@ if st.button("🎯 Generar Contenido", type="primary"):
                                         with col1:
                                             st.download_button(
                                                 label="📝 Descargar solo Texto",
-                                                data=resultado,
+                                                data=st.session_state.generated_content,
                                                 file_name=f"contenido_{platform.lower()}.txt",
                                                 mime="text/plain"
                                             )
                                         with col2:
                                             st.download_button(
                                                 label="🖼️ Descargar solo Imagen",
-                                                data=image_data,
+                                                data=st.session_state.generated_image,
                                                 file_name=f"imagen_{platform.lower()}.png",
                                                 mime="image/png"
                                             )
@@ -251,7 +272,7 @@ if st.button("🎯 Generar Contenido", type="primary"):
                                     # Mostrar solo el botón de descarga de texto si la imagen falló
                                     st.download_button(
                                         label="📥 Descargar Contenido",
-                                        data=resultado,
+                                        data=st.session_state.generated_content,
                                         file_name=f"contenido_{platform.lower()}.txt",
                                         mime="text/plain"
                                     )
@@ -260,7 +281,7 @@ if st.button("🎯 Generar Contenido", type="primary"):
                             # Mostrar solo el botón de descarga de texto si hubo error
                             st.download_button(
                                 label="📥 Descargar Contenido",
-                                data=resultado,
+                                data=st.session_state.generated_content,
                                 file_name=f"contenido_{platform.lower()}.txt",
                                 mime="text/plain"
                             )
@@ -268,7 +289,7 @@ if st.button("🎯 Generar Contenido", type="primary"):
                         # Si no se solicitó imagen, mostrar solo el botón de descarga de texto
                         st.download_button(
                             label="📥 Descargar Contenido",
-                            data=resultado,
+                            data=st.session_state.generated_content,
                             file_name=f"contenido_{platform.lower()}.txt",
                             mime="text/plain"
                         )
@@ -279,6 +300,14 @@ if st.button("🎯 Generar Contenido", type="primary"):
                 st.error(f"Error generando contenido: {str(e)}")
     else:
         st.warning("⚠️ Por favor, completa todos los campos requeridos.")
+
+
+# Mostrar contenido e imagen persistentes
+if st.session_state.generated_content:
+    st.markdown(st.session_state.generated_content)
+    
+if st.session_state.generated_image:
+    st.image(BytesIO(st.session_state.generated_image))        
 
 # Footer
 st.markdown("---")
