@@ -2,11 +2,12 @@ import streamlit as st
 from generators.ollama_generator import OllamaGenerator
 from generators.image_generator import ImageGenerator
 from utils.company_profile import ProfileManager, CompanyProfile
-from utils.prompt_manager import PromptManager  # Importamos PromptManager
+from utils.prompt_manager import PromptManager
 import os
 from dotenv import load_dotenv
 import base64
 from io import BytesIO
+import zipfile
 
 # Configuración de la página
 st.set_page_config(
@@ -203,14 +204,69 @@ if st.button("🎯 Generar Contenido", type="primary"):
                                         image_data = base64.b64decode(image_base64)
                                         image_bytes = BytesIO(image_data)
                                         st.image(image_bytes)
+                                        
+                                        # Crear un archivo ZIP con el contenido y la imagen
+                                        zip_buffer = BytesIO()
+                                        with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
+                                            # Añadir el contenido de texto
+                                            zip_file.writestr(
+                                                f"contenido_{platform.lower()}.txt",
+                                                resultado
+                                            )
+                                            # Añadir la imagen
+                                            zip_file.writestr(
+                                                f"imagen_{platform.lower()}.png",
+                                                image_data
+                                            )
+                                        
+                                        # Botón para descargar el ZIP
+                                        st.download_button(
+                                            label="📥 Descargar Contenido e Imagen",
+                                            data=zip_buffer.getvalue(),
+                                            file_name=f"contenido_{platform.lower()}_completo.zip",
+                                            mime="application/zip"
+                                        )
+                                        
+                                        # Botones individuales para descargar cada elemento
+                                        col1, col2 = st.columns(2)
+                                        with col1:
+                                            st.download_button(
+                                                label="📝 Descargar solo Texto",
+                                                data=resultado,
+                                                file_name=f"contenido_{platform.lower()}.txt",
+                                                mime="text/plain"
+                                            )
+                                        with col2:
+                                            st.download_button(
+                                                label="🖼️ Descargar solo Imagen",
+                                                data=image_data,
+                                                file_name=f"imagen_{platform.lower()}.png",
+                                                mime="image/png"
+                                            )
+                                            
                                     except Exception as e:
                                         st.error(f"❌ Error al procesar la imagen: {str(e)}")
                                 else:
                                     st.error("❌ No se pudo generar la imagen.")
+                                    # Mostrar solo el botón de descarga de texto si la imagen falló
+                                    st.download_button(
+                                        label="📥 Descargar Contenido",
+                                        data=resultado,
+                                        file_name=f"contenido_{platform.lower()}.txt",
+                                        mime="text/plain"
+                                    )
                         except Exception as e:
                             st.error(f"🚨 Error en la generación de imagen: {str(e)}")
-                    
-                    st.download_button(
+                            # Mostrar solo el botón de descarga de texto si hubo error
+                            st.download_button(
+                                label="📥 Descargar Contenido",
+                                data=resultado,
+                                file_name=f"contenido_{platform.lower()}.txt",
+                                mime="text/plain"
+                            )
+                    else:
+                        # Si no se solicitó imagen, mostrar solo el botón de descarga de texto
+                        st.download_button(
                             label="📥 Descargar Contenido",
                             data=resultado,
                             file_name=f"contenido_{platform.lower()}.txt",
