@@ -177,26 +177,10 @@ if generar_imagen:
     if not stability_api_key:
         st.warning("⚠️ No se ha configurado la API key de Stability AI. La generación de imágenes no estará disponible.")
             
-# Botón de generación
 if st.button("🎯 Generar Contenido", type="primary"):
     if tema and audiencia:
         with st.spinner("✨ Generando contenido personalizado..."):
             try:
-                # Iniciar tracking
-                with langsmith_tracker.track_generation(
-                    tema=tema,
-                    platform=platform,
-                    tono=tono,
-                    audiencia=audiencia
-                ):
-                    # Tu código existente de generación
-                    resultado = generator.generate_content(
-                        prompt_template,
-                        template_params
-                    )
-                # Actualizar el modelo del generador
-                generator.model = model
-                
                 # Obtener el template para la plataforma seleccionada
                 platform_template = prompt_manager.get_template(platform)
                 
@@ -211,105 +195,122 @@ if st.button("🎯 Generar Contenido", type="primary"):
                     "tono": tono
                 }
                 
-                # Validar que tenemos todos los parámetros necesarios
-                if generator.validate_params(platform_template["params"], template_params):
-                    # Obtener el template y añadir contexto del perfil si existe
-                    prompt_template = platform_template["template"]
-                    
-                    if selected_profile != "Ninguno":
-                        profile = profile_manager.load_profile(selected_profile)
-                        if profile:
-                            prompt_template += f"\n\nContexto de la empresa:\n{profile.get_prompt_context()}"
-                    
-                    # Generar contenido
-                    resultado = generator.generate_content(
-                        prompt_template,
-                        template_params
-                    )
-                    
-                    if resultado:
-                        st.success("¡Contenido generado con éxito! 🎉")
-                        st.header(f"📊 Contenido para {platform}")
-                        # Guardar el contenido en session_state
-                        st.session_state.generated_content = resultado
-                        st.markdown(resultado)
+                # Obtener el template y añadir contexto del perfil
+                prompt_template = platform_template["template"]
                 
-                    # Generar imagen si está seleccionado y configurado
-                    if generar_imagen and image_gen:
-                        try:
-                            with st.spinner("🎨 Generando imagen..."):
-                                image_prompt = f"Create a professional and modern image that represents: {tema}"
-                                st.info("🔍 Prompt para la imagen: " + image_prompt)
-                                
-                                image_base64 = image_gen.generate_image(
-                                    prompt=image_prompt.strip(),
-                                    dimensions=dimensions,
-                                    negative_prompt=negative_prompt
-                                )
-                                
-                                if image_base64:
-                                    st.success("✨ ¡Imagen generada exitosamente!")
-                                    # Decodificar la imagen base64 y mostrarla
-                                    try:
-                                        image_data = base64.b64decode(image_base64)
-                                        # Guardar la imagen en session_state
-                                        st.session_state.generated_image = image_data
-                                        st.image(BytesIO(image_data))
-                                        
-                                        # Crear un archivo ZIP con el contenido y la imagen
-                                        zip_buffer = BytesIO()
-                                        with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
-                                            # Añadir el contenido de texto
-                                            zip_file.writestr(
-                                                f"contenido_{platform.lower()}.txt",
-                                                st.session_state.generated_content
-                                            )
-                                            # Añadir la imagen
-                                            zip_file.writestr(
-                                                f"imagen_{platform.lower()}.png",
-                                                st.session_state.generated_image
+                if selected_profile != "Ninguno":
+                    profile = profile_manager.load_profile(selected_profile)
+                    if profile:
+                        prompt_template += f"\n\nContexto de la empresa:\n{profile.get_prompt_context()}"
 
-                                            )
-                                        
-                                        # Botón para descargar el ZIP
-                                        st.download_button(
-                                            label="📥 Descargar Contenido e Imagen",
-                                            data=zip_buffer.getvalue(),
-                                            file_name=f"contenido_{platform.lower()}_completo.zip",
-                                            mime="application/zip"
-                                        )
-                                        
-                                        # Botones individuales para descargar cada elemento
-                                        col1, col2 = st.columns(2)
-                                        with col1:
+                # Actualizar el modelo del generador
+                generator.model = model
+
+                # Iniciar tracking
+                with langsmith_tracker.track_generation(
+                    tema=tema,
+                    platform=platform,
+                    tono=tono,
+                    audiencia=audiencia
+                ):
+                    # Validar que tenemos todos los parámetros necesarios
+                    if generator.validate_params(platform_template["params"], template_params):
+                        # Generar contenido
+                        resultado = generator.generate_content(
+                            prompt_template,
+                            template_params
+                        )
+                        
+                        if resultado:
+                            st.success("¡Contenido generado con éxito! 🎉")
+                            st.header(f"📊 Contenido para {platform}")
+                            # Guardar el contenido en session_state
+                            st.session_state.generated_content = resultado
+                            st.markdown(resultado)
+                    
+                        # Generar imagen si está seleccionado y configurado
+                        if generar_imagen and image_gen:
+                            try:
+                                with st.spinner("🎨 Generando imagen..."):
+                                    image_prompt = f"Create a professional and modern image that represents: {tema}"
+                                    st.info("🔍 Prompt para la imagen: " + image_prompt)
+                                    
+                                    image_base64 = image_gen.generate_image(
+                                        prompt=image_prompt.strip(),
+                                        dimensions=dimensions,
+                                        negative_prompt=negative_prompt
+                                    )
+                                    
+                                    if image_base64:
+                                        st.success("✨ ¡Imagen generada exitosamente!")
+                                        # Decodificar la imagen base64 y mostrarla
+                                        try:
+                                            image_data = base64.b64decode(image_base64)
+                                            # Guardar la imagen en session_state
+                                            st.session_state.generated_image = image_data
+                                            st.image(BytesIO(image_data))
+                                            
+                                            # Crear un archivo ZIP con el contenido y la imagen
+                                            zip_buffer = BytesIO()
+                                            with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
+                                                # Añadir el contenido de texto
+                                                zip_file.writestr(
+                                                    f"contenido_{platform.lower()}.txt",
+                                                    st.session_state.generated_content
+                                                )
+                                                # Añadir la imagen
+                                                zip_file.writestr(
+                                                    f"imagen_{platform.lower()}.png",
+                                                    st.session_state.generated_image
+                                                )
+                                            
+                                            # Botón para descargar el ZIP
                                             st.download_button(
-                                                label="📝 Descargar solo Texto",
-                                                data=st.session_state.generated_content,
-                                                file_name=f"contenido_{platform.lower()}.txt",
-                                                mime="text/plain"
-                                            )
-                                        with col2:
-                                            st.download_button(
-                                                label="🖼️ Descargar solo Imagen",
-                                                data=st.session_state.generated_image,
-                                                file_name=f"imagen_{platform.lower()}.png",
-                                                mime="image/png"
+                                                label="📥 Descargar Contenido e Imagen",
+                                                data=zip_buffer.getvalue(),
+                                                file_name=f"contenido_{platform.lower()}_completo.zip",
+                                                mime="application/zip"
                                             )
                                             
-                                    except Exception as e:
-                                        st.error(f"❌ Error al procesar la imagen: {str(e)}")
-                                else:
-                                    st.error("❌ No se pudo generar la imagen.")
-                                    # Mostrar solo el botón de descarga de texto si la imagen falló
-                                    st.download_button(
-                                        label="📥 Descargar Contenido",
-                                        data=st.session_state.generated_content,
-                                        file_name=f"contenido_{platform.lower()}.txt",
-                                        mime="text/plain"
-                                    )
-                        except Exception as e:
-                            st.error(f"🚨 Error en la generación de imagen: {str(e)}")
-                            # Mostrar solo el botón de descarga de texto si hubo error
+                                            # Botones individuales para descargar cada elemento
+                                            col1, col2 = st.columns(2)
+                                            with col1:
+                                                st.download_button(
+                                                    label="📝 Descargar solo Texto",
+                                                    data=st.session_state.generated_content,
+                                                    file_name=f"contenido_{platform.lower()}.txt",
+                                                    mime="text/plain"
+                                                )
+                                            with col2:
+                                                st.download_button(
+                                                    label="🖼️ Descargar solo Imagen",
+                                                    data=st.session_state.generated_image,
+                                                    file_name=f"imagen_{platform.lower()}.png",
+                                                    mime="image/png"
+                                                )
+                                                
+                                        except Exception as e:
+                                            st.error(f"❌ Error al procesar la imagen: {str(e)}")
+                                    else:
+                                        st.error("❌ No se pudo generar la imagen.")
+                                        # Mostrar solo el botón de descarga de texto si la imagen falló
+                                        st.download_button(
+                                            label="📥 Descargar Contenido",
+                                            data=st.session_state.generated_content,
+                                            file_name=f"contenido_{platform.lower()}.txt",
+                                            mime="text/plain"
+                                        )
+                            except Exception as e:
+                                st.error(f"🚨 Error en la generación de imagen: {str(e)}")
+                                # Mostrar solo el botón de descarga de texto si hubo error
+                                st.download_button(
+                                    label="📥 Descargar Contenido",
+                                    data=st.session_state.generated_content,
+                                    file_name=f"contenido_{platform.lower()}.txt",
+                                    mime="text/plain"
+                                )
+                        else:
+                            # Si no se solicitó imagen, mostrar solo el botón de descarga de texto
                             st.download_button(
                                 label="📥 Descargar Contenido",
                                 data=st.session_state.generated_content,
@@ -317,21 +318,12 @@ if st.button("🎯 Generar Contenido", type="primary"):
                                 mime="text/plain"
                             )
                     else:
-                        # Si no se solicitó imagen, mostrar solo el botón de descarga de texto
-                        st.download_button(
-                            label="📥 Descargar Contenido",
-                            data=st.session_state.generated_content,
-                            file_name=f"contenido_{platform.lower()}.txt",
-                            mime="text/plain"
-                        )
-                else:
-                    st.error("Faltan parámetros requeridos para la generación del contenido")
+                        st.error("Faltan parámetros requeridos para la generación del contenido")
                     
             except Exception as e:
                 st.error(f"Error generando contenido: {str(e)}")
     else:
         st.warning("⚠️ Por favor, completa todos los campos requeridos.")
-
 
 # Mostrar contenido e imagen persistentes
 if st.session_state.generated_content:
