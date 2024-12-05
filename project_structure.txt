@@ -1,0 +1,13 @@
+proyecto_contenido/
+├── src/
+│   ├── generators/
+│   │   ├── __init__.py
+│   │   ├── content_generator.py
+│   │   └── prompt_manager.py
+│   ├── utils/
+│   │   ├── __init__.py
+│   │   └── constants.py
+│   └── app.py
+├── .env
+├── requirements.txt
+└── README.md

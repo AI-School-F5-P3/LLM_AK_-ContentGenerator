@@ -1,0 +1,33 @@
+{
+    "name": "Google",
+    "description": "Google (Alphabet Inc.)Google, una subsidiaria de Alphabet, es una empresa global enfocada en tecnolog\u00eda y servicios digitales que conectan a millones de personas en todo el mundo, liderando la innovaci\u00f3n en inteligencia artificial, motor de b\u00fasqueda y soluciones para consumidores y empresas.\n\n",
+    "industry": "Tecnolog\u00eda de la informaci\u00f3n, publicidad digital.",
+    "tone_of_voice": "Amigable, inclusivo, visionario.",
+    "target_audience": [
+        "Usuarios de internet",
+        " desarrolladores",
+        " empresas de publicidad",
+        " creadores de contenido",
+        " estudiantes",
+        " investigadores",
+        " startups."
+    ],
+    "key_values": [
+        "Acceso universal a la informaci\u00f3n",
+        " innovaci\u00f3n",
+        " simplicidad",
+        " sostenibilidad",
+        " inclusi\u00f3n",
+        " privacidad."
+    ],
+    "hashtags": [
+        "#Google",
+        " #Alphabet",
+        " #AI",
+        " #Innovation",
+        " #Search",
+        " #CloudComputing",
+        " #Android"
+    ],
+    "website": "https://www.google.com"
+}
