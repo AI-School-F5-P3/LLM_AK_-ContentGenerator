@@ -20,11 +20,19 @@ st.set_page_config(
     layout="wide"
 )
 
+# Cargar variables de entorno
+load_dotenv()
+
 # Initialize services
 language_service = LanguageService()
 financial_news_service = FinancialNewsService(os.getenv("ALPHA_VANTAGE_API_KEY"))
-scientific_content_service = ScientificContentService(os.getenv("OPENAI_API_KEY"))
 langsmith_tracker = LangSmithTracker(os.getenv("LANGSMITH_API_KEY"))
+scientific_service = ScientificContentService(api_token=os.getenv("HUGGINGFACEHUB_API_TOKEN"))
+
+# Verificar que el token existe
+huggingface_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
+if not huggingface_token:
+    st.warning("⚠️ No se ha configurado HUGGINGFACEHUB_API_TOKEN. El contenido científico no estará disponible.")
 
 
 # Inicializar estados en session_state si no existen
@@ -35,8 +43,6 @@ if 'generated_image' not in st.session_state:
 if 'profile_saved' not in st.session_state:
     st.session_state.profile_saved = False
 
-# Cargar variables de entorno
-load_dotenv()
 
 # Inicialización de los managers
 generator = OllamaGenerator()
@@ -452,33 +458,51 @@ with col2:
     tema_especifico = st.text_input("Ingrese tema o pregunta específica")
 
 if st.button("Generar Contenido Científico"):
-    with st.spinner("Investigando y generando contenido..."):
-        try:
-            # Obtener papers relevantes
-            papers = scientific_content_service.fetch_arxiv_papers(
-                query=f"{area_seleccionada} {tema_especifico}"
-            )
-            
-            if papers:
-                # Procesar documentos y crear vector store
-                vectorstore = scientific_content_service.process_documents(papers)
-                
-                # Generar contenido
-                contenido = scientific_content_service.generate_content(
-                    query=tema_especifico,
-                    vectorstore=vectorstore
+    if not huggingface_token:
+        st.error("Por favor configura el token de HuggingFace para usar esta función")
+    elif not tema_especifico:
+        st.warning("Por favor ingresa un tema específico")
+    else:
+        with st.spinner("Investigando y generando contenido..."):
+            try:
+                # Obtener papers relevantes
+                papers = scientific_service.fetch_arxiv_papers(
+                    query=f"{area_seleccionada} {tema_especifico}"
                 )
                 
-                st.write(contenido)
+                if not papers:
+                    st.warning("No se encontraron papers relevantes para el tema especificado.")
+                    st.stop()
                 
-                # Mostrar fuentes
-                st.subheader("Fuentes")
-                for paper in papers:
-                    st.write(f"- [{paper.title}]({paper.entry_id})")
-            else:
-                st.warning("No se encontraron papers relevantes para el tema especificado.")
-        except Exception as e:
-            st.error(f"Error al generar contenido científico: {str(e)}")
+                # Mostrar progreso
+                st.info(f"📚 Se encontraron {len(papers)} papers relevantes")
+                
+                # Procesar documentos
+                with st.spinner("Procesando documentos..."):
+                    vectorstore = scientific_service.process_documents(papers)
+                
+                # Generar contenido
+                with st.spinner("Generando contenido..."):
+                    contenido = scientific_service.generate_content(
+                        query=tema_especifico,
+                        vectorstore=vectorstore
+                    )
+                
+                if contenido:
+                    st.success("✨ Contenido generado exitosamente")
+                    st.write(contenido)
+                    
+                    # Mostrar fuentes
+                    st.subheader("📚 Fuentes")
+                    for paper in papers:
+                        st.write(f"- [{paper.title}]({paper.entry_id})")
+                else:
+                    st.error("No se pudo generar el contenido")
+                    
+            except Exception as e:
+                st.error(f"Error al generar contenido científico: {str(e)}")
+                st.error("Por favor verifica que todas las dependencias estén instaladas y el token sea válido")
+
 
 # Footer
 st.markdown("---")
