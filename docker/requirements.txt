@@ -6,3 +6,5 @@ pillow
 requests
 openai
 python-dotenv
+stability-sdk
+python-multipart

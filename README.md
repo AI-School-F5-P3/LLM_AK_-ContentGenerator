@@ -76,6 +76,7 @@ docker build -t content-generator .
 2. Run the container:
 ```bash
 docker run -p 8501:8501 --env-file .env content-generator
+docker run --network host content-generator
 ```
 
 ## 💻 Usage
