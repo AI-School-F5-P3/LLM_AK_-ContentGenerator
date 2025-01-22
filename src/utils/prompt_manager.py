@@ -83,6 +83,32 @@ class PromptManager:
                 - Tono conversacional y auténtico
                 """,
                 "params": ["tema", "audiencia", "tono"]
+            },
+            
+            "Song": {
+                "template": """Crea una canción en {idioma} sobre {tema}.
+                Audiencia: {audiencia}
+                Tono: {tono}
+                Género: {genero}
+                
+                Estructura:
+                1. Verso 1
+                2. Pre-coro (opcional)
+                3. Coro
+                4. Verso 2
+                5. Pre-coro (opcional)
+                6. Coro
+                7. Puente (opcional)
+                8. Coro final
+                
+                Requisitos:
+                - Mantén un patrón de rima consistente
+                - Respeta la métrica musical
+                - Incluye elementos repetitivos memorables
+                - Adapta el vocabulario al género musical
+                - Longitud aproximada: 16-24 líneas
+                """,
+                "params": ["tema", "audiencia", "tono", "idioma", "genero"]
             }
         }
     
