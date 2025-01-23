@@ -1,95 +1,95 @@
 from typing import Dict, Optional
 
 class PromptManager:
-    """Gestiona los templates de prompts para diferentes plataformas"""
+    """Manages prompt templates for different platforms"""
     
     def __init__(self):
         self.templates = {
             "Blog": {
-                "template": """Crea un artículo de blog profesional sobre {tema}.
-                Audiencia: {audiencia}
-                Tono: {tono}
+                "template": """Create a professional blog article about {tema}.
+                Audience: {audiencia}
+                Tone: {tono}
                 
-                Estructura requerida:
-                1. Título llamativo y SEO friendly
-                2. Introducción que enganche (2-3 párrafos)
-                3. Desarrollo del contenido (3-4 secciones principales)
-                4. Conclusión impactante
+                Required Structure:
+                1. Catchy and SEO-friendly title
+                2. Engaging introduction (2-3 paragraphs)
+                3. Content development (3-4 main sections)
+                4. Impactful conclusion
                 5. Call to action
                 
-                Requisitos adicionales:
-                - Usa un lenguaje adaptado a la audiencia especificada
-                - Incluye subtítulos relevantes
-                - Longitud aproximada: 800-1000 palabras
-                - Incluye 2-3 bullet points donde sea relevante
+                Additional Requirements:
+                - Use language adapted to the specified audience
+                - Include relevant subtitles
+                - Approximate length: 800-1000 words
+                - Include 2-3 bullet points where relevant
                 """,
                 "params": ["tema", "audiencia", "tono"]
             },
             
             "Twitter": {
-                "template": """Genera un hilo de Twitter efectivo sobre {tema}.
-                Audiencia: {audiencia}
-                Tono: {tono}
+                "template": """Generate an effective Twitter thread about {tema}.
+                Audience: {audiencia}
+                Tone: {tono}
                 
-                Estructura:
-                1. Tweet principal que enganche
-                2. 4-5 tweets de desarrollo
-                3. Tweet final con call to action
+                Structure:
+                1. Main tweet that captures attention
+                2. 4-5 development tweets
+                3. Final tweet with call to action
                 
-                Requisitos:
-                - Máximo 280 caracteres por tweet
-                - Usa hashtags relevantes (máximo 2-3 por tweet)
-                - Incluye emojis apropiados
-                - Mantén un hilo coherente y progresivo
+                Requirements:
+                - Maximum 280 characters per tweet
+                - Use relevant hashtags (maximum 2-3 per tweet)
+                - Include appropriate emojis
+                - Maintain a coherent and progressive thread
                 """,
                 "params": ["tema", "audiencia", "tono"]
             },
             
             "LinkedIn": {
-                "template": """Crea una publicación profesional de LinkedIn sobre {tema}.
-                Audiencia: {audiencia}
-                Tono: {tono}
+                "template": """Create a professional LinkedIn post about {tema}.
+                Audience: {audiencia}
+                Tone: {tono}
                 
-                Estructura:
-                1. Primer párrafo impactante
-                2. Desarrollo de la idea principal
-                3. Experiencia personal o caso de estudio
-                4. Conclusión con llamada a la acción
+                Structure:
+                1. Impactful first paragraph
+                2. Main idea development
+                3. Personal experience or case study
+                4. Conclusion with call to action
                 
-                Requisitos:
-                - Mantén un tono profesional pero cercano
-                - Incluye espaciado para mejor legibilidad
-                - Usa emojis profesionales estratégicamente
-                - Añade 3-5 hashtags relevantes al final
+                Requirements:
+                - Maintain a professional yet close tone
+                - Include spacing for better readability
+                - Strategically use professional emojis
+                - Add 3-5 relevant hashtags at the end
                 """,
                 "params": ["tema", "audiencia", "tono"]
             },
             
             "Instagram": {
-                "template": """Genera una publicación de Instagram sobre {tema}.
-                Audiencia: {audiencia}
-                Tono: {tono}
+                "template": """Generate an Instagram post about {tema}.
+                Audience: {audiencia}
+                Tone: {tono}
                 
-                Estructura:
-                1. Primer párrafo que capture la atención
-                2. Desarrollo conciso del mensaje principal
-                3. Call to action engagement-focused
-                4. Hashtags relevantes
+                Structure:
+                1. First paragraph that captures attention
+                2. Concise development of the main message
+                3. Engagement-focused call to action
+                4. Relevant hashtags
                 
-                Requisitos:
-                - Texto conciso y visualmente espaciado
-                - Emojis relevantes
-                - 8-10 hashtags estratégicos
-                - Tono conversacional y auténtico
+                Requirements:
+                - Concise and visually spaced text
+                - Relevant emojis
+                - 8-10 strategic hashtags
+                - Conversational and authentic tone
                 """,
                 "params": ["tema", "audiencia", "tono"]
             }
         }
     
     def get_template(self, platform: str) -> Optional[Dict]:
-        """Obtiene el template para una plataforma específica"""
+        """Gets template for a specific platform"""
         return self.templates.get(platform)
     
     def get_all_platforms(self) -> list:
-        """Retorna lista de todas las plataformas disponibles"""
+        """Returns list of all available platforms"""
         return list(self.templates.keys())
