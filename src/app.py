@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import base64
 from io import BytesIO
 import zipfile
+from generators.llm_handler import LLMManager, GroqProvider
 
 # Page configuration
 st.set_page_config(
@@ -28,7 +29,11 @@ if 'profile_saved' not in st.session_state:
 load_dotenv()
 
 # Initialize managers
-generator = OllamaGenerator()
+llm_manager = LLMManager()
+groq_provider = llm_manager.get_provider("Groq-Mixtral-8x7b-32768")
+generator = groq_provider.get_llm()
+
+#generator = OllamaGenerator()
 profile_manager = ProfileManager()
 prompt_manager = PromptManager()  # Initialize PromptManager
 

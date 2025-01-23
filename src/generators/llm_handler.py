@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
-from langchain_community.llms import OpenAI
-from langchain.callbacks import StreamingStdOutCallbackHandler
-from langchain.schema.language_model import BaseLLM
-import ollama
-import os
 from typing import Optional, Dict
-from langchain_community.llms import Groq
 import os
-from groq import Groq
+from langchain_community.llms import OpenAI, Groq
+from langchain.callbacks import StreamingStdOutCallbackHandler
+from langchain_core.language_models import BaseLLM
+from groq import Groq as GroqClient
+
+import ollama
+
 
 class LLMProvider(ABC):
     """Clase base para providers de LLM"""
