@@ -299,11 +299,11 @@ if st.button("🎯 Generate Content", type="primary"):
         st.warning("⚠️ Please complete all required fields.")
 
 # Display persistent content and image
-if st.session_state.generated_content:
-    st.markdown(st.session_state.generated_content)
+# if st.session_state.generated_content:
+#     st.markdown(st.session_state.generated_content)
     
-if st.session_state.generated_image:
-    st.image(BytesIO(st.session_state.generated_image))        
+# if st.session_state.generated_image:
+#     st.image(BytesIO(st.session_state.generated_image))        
 
 # Footer
 st.markdown("---")
