@@ -1,5 +1,4 @@
 import streamlit as st
-from generators.ollama_generator import OllamaGenerator
 from generators.image_generator import ImageGenerator
 from utils.company_profile import ProfileManager, CompanyProfile
 from utils.prompt_manager import PromptManager
@@ -33,9 +32,8 @@ llm_manager = LLMManager()
 groq_provider = llm_manager.get_provider("Groq-Mixtral-8x7b-32768")
 generator = groq_provider.get_llm()
 
-#generator = OllamaGenerator()
 profile_manager = ProfileManager()
-prompt_manager = PromptManager()  # Initialize PromptManager
+prompt_manager = PromptManager()
 
 # Stability AI configuration
 stability_api_key = os.getenv("STABILITY_API_KEY")
@@ -55,7 +53,7 @@ st.sidebar.header("⚙️ Configuration")
 # Model selection
 model = st.sidebar.selectbox(
     "Select Model",
-    ["mistral", "llama2", "neural-chat"]
+    ["mixtral-8x7b-32768", "llama2-70b-4096", "gemma-7b-it"]
 )
 
 # Platform selection
