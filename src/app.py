@@ -8,6 +8,8 @@ import base64
 from io import BytesIO
 import zipfile
 from generators.llm_handler import LLMManager, GroqProvider
+from utils.content_safety import safety_check_middleware
+
 
 # Page configuration
 st.set_page_config(
@@ -162,8 +164,15 @@ if generate_image:
 # Generation button
 if st.button("🎯 Generate Content", type="primary"):
     if theme and audience:
+        
         with st.spinner("✨ Generating personalized content..."):
             try:
+                # FIRST SAFETY CHECK - Before any content generation
+                initial_safety_check = safety_check_middleware(theme, platform, "")
+                if not initial_safety_check['is_safe']:
+                    st.error(initial_safety_check['message'])
+                    st.stop()
+
                 # Update generator model
                 generator.model = model
                 
@@ -191,11 +200,18 @@ if st.button("🎯 Generate Content", type="primary"):
                         if profile:
                             prompt_template += f"\n\nCompany Context:\n{profile.get_prompt_context()}"
                     
+
                     # Generate content
                     result = generator.generate_content(
                         prompt_template,
                         template_params
                     )
+
+                    # SECOND SAFETY CHECK - After content generation
+                    final_safety_check = safety_check_middleware(theme, platform, result)
+                    if not final_safety_check['is_safe']:
+                        st.error(final_safety_check['message'])
+                        st.stop()
                     
                     if result:
                         st.success("Content generated successfully! 🎉")
