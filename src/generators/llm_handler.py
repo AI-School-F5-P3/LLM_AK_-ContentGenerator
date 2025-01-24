@@ -1,16 +1,15 @@
 from abc import ABC, abstractmethod
-from langchain_community.llms import OpenAI
-from langchain.callbacks import StreamingStdOutCallbackHandler
-from langchain.schema.language_model import BaseLLM
-import ollama
+from typing import Optional, Dict, List, Any
 import os
-from typing import Optional, Dict
+from langchain_core.pydantic_v1 import BaseModel
+from groq import Groq
+
 
 class LLMProvider(ABC):
-    """Clase base para providers de LLM"""
+    """Base class for LLM providers"""
     
     @abstractmethod
-    def get_llm(self) -> BaseLLM:
+    def get_llm(self):
         pass
     
     @abstractmethod
@@ -21,78 +20,79 @@ class LLMProvider(ABC):
     def get_description(self) -> str:
         pass
 
-class OpenAIProvider(LLMProvider):
-    """Provider para OpenAI"""
-    
-    def __init__(self, api_key: str, model: str = "gpt-3.5-turbo", temperature: float = 0.7):
-        self.api_key = api_key
+
+class GroqProvider(LLMProvider):
+    def __init__(self, 
+                 api_key: Optional[str] = None, 
+                 model: str = "mixtral-8x7b-32768",
+                 temperature: float = 0.7):
+        self.api_key = api_key or os.getenv("GROQ_API_KEY")
         self.model = model
         self.temperature = temperature
     
-    def get_llm(self) -> BaseLLM:
-        return OpenAI(
-            openai_api_key=self.api_key,
-            model=self.model,
-            temperature=self.temperature,
-            streaming=True,
-            callbacks=[StreamingStdOutCallbackHandler()]
-        )
-    
-    def get_name(self) -> str:
-        return "OpenAI"
-    
-    def get_description(self) -> str:
-        return f"OpenAI {self.model} (Balanced quality and speed)"
+    def get_llm(self):
+        if not self.api_key:
+            raise ValueError("Groq API key required")
+        
+        client = Groq(api_key=self.api_key)
 
-class OllamaProvider(LLMProvider):
-    """Provider para modelos usando Ollama"""
-    
-    def __init__(self, model: str = "mistral"):
-        self.model = model
-    
-    def get_llm(self) -> BaseLLM:
-        return ollama.LLM(
-            model=self.model,
-            callbacks=[StreamingStdOutCallbackHandler()]
-        )
+        class GroqLLM(BaseModel):
+            client: Any
+            model: str
+            temperature: float
+            
+            def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
+                try:
+                    response = self.client.chat.completions.create(
+                        model=self.model,
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=self.temperature,
+                        stop=stop
+                    )
+                    return response.choices[0].message.content
+                except Exception as e:
+                    raise ValueError(f"Groq API Error: {str(e)}")
+            
+            def validate_params(self, required_params: List[str], provided_params: Dict[str, str]) -> bool:
+                return all(param in provided_params and provided_params[param].strip() for param in required_params)
+            
+            def generate_content(self, prompt_template: str, template_params: Dict[str, str]) -> str:
+                formatted_prompt = prompt_template.format(**template_params)
+                return self._call(formatted_prompt)
+
+        return GroqLLM(client=client, model=self.model, temperature=self.temperature)
     
     def get_name(self) -> str:
-        return f"Ollama-{self.model.capitalize()}"
+        return "Groq-Mixtral-8x7b-32768"
     
     def get_description(self) -> str:
-        return f"{self.model.capitalize()} (Open source, runs locally)"
+        return "Groq Mixtral 8x7B (High performance)"
+
 
 class LLMManager:
-    """Gestor principal de LLMs"""
+    """Main LLM manager"""
     
     def __init__(self):
         self.providers: Dict[str, LLMProvider] = {}
         self._initialize_default_providers()
     
     def _initialize_default_providers(self):
-        """Inicializa los providers por defecto"""
-        # OpenAI
-        if os.getenv("OPENAI_API_KEY"):
-            self.add_provider(OpenAIProvider(api_key=os.getenv("OPENAI_API_KEY")))
-        
-        # Ollama providers
-        try:
-            import ollama
-            # Añadir diferentes modelos de Ollama
-            for model in ["mistral", "llama2", "neural-chat"]:
-                self.add_provider(OllamaProvider(model=model))
-        except ImportError:
-            pass
+        groq_api_key = os.getenv("GROQ_API_KEY")
+        if groq_api_key:
+            self.add_provider(GroqProvider(
+                api_key=groq_api_key, 
+                model="mixtral-8x7b-32768"
+            ))
     
     def add_provider(self, provider: LLMProvider):
-        """Añade un nuevo provider"""
+        """Add a new provider"""
         self.providers[provider.get_name()] = provider
     
     def get_provider(self, name: str) -> Optional[LLMProvider]:
-        """Obtiene un provider específico"""
+        """Get a specific provider"""
         return self.providers.get(name)
     
     def get_available_providers(self) -> list:
-        """Retorna lista de providers disponibles"""
+        """Return list of available providers"""
         return [(name, provider.get_description()) 
                 for name, provider in self.providers.items()]
